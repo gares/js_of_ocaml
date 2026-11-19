@@ -68,27 +68,33 @@ let rec instruction ~no_tail_call ~tail i =
   | Event _ -> i
 
 and instructions ~no_tail_call ~tail l =
-  match l with
-  | [] -> []
-  | [ i ] -> [ instruction ~no_tail_call ~tail i ]
-  | i :: Nop :: rem -> instructions ~no_tail_call ~tail (i :: rem)
-  | i :: i' :: Nop :: rem -> instructions ~no_tail_call ~tail (i :: i' :: rem)
-  | i :: i' :: (([] | [ Event _ ]) as event_opt) -> (
-      (* There can be an event at the end of the function, which we
-         should keep. *)
-      match get_return ~tail i' with
-      | None ->
-          instruction ~no_tail_call ~tail:false i
-          :: instruction ~no_tail_call ~tail i'
-          :: event_opt
-      | Some y -> (
-          match rewrite_tail_call ~no_tail_call ~y i with
-          | None ->
-              instruction ~no_tail_call ~tail:false i
-              :: instruction ~no_tail_call ~tail i'
-              :: event_opt
-          | Some i'' -> i'' :: event_opt))
-  | i :: rem ->
-      instruction ~no_tail_call ~tail:false i :: instructions ~no_tail_call ~tail rem
+  (* Tail-recursive: the body of a function can be a very long list of
+     instructions (e.g. the initialization code of a large module) *)
+  let rec loop acc (l : Wasm_ast.instruction list) =
+    match l with
+    | [] -> List.rev acc
+    | [ i ] -> List.rev_append acc [ instruction ~no_tail_call ~tail i ]
+    | i :: Nop :: rem -> loop acc (i :: rem)
+    | i :: i' :: Nop :: rem -> loop acc (i :: i' :: rem)
+    | i :: i' :: (([] | [ Event _ ]) as event_opt) -> (
+        (* There can be an event at the end of the function, which we
+           should keep. *)
+        List.rev_append acc
+        @@
+        match get_return ~tail i' with
+        | None ->
+            instruction ~no_tail_call ~tail:false i
+            :: instruction ~no_tail_call ~tail i'
+            :: event_opt
+        | Some y -> (
+            match rewrite_tail_call ~no_tail_call ~y i with
+            | None ->
+                instruction ~no_tail_call ~tail:false i
+                :: instruction ~no_tail_call ~tail i'
+                :: event_opt
+            | Some i'' -> i'' :: event_opt))
+    | i :: rem -> loop (instruction ~no_tail_call ~tail:false i :: acc) rem
+  in
+  loop [] l
 
 let f ~no_tail_call l = instructions ~no_tail_call ~tail:true l
