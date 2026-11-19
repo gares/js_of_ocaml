@@ -680,7 +680,8 @@
     register_channel,
     unregister_channel,
     channel_list,
-    exit: (n) => isNode && globalThis.process.exit(n),
+    exit: (n) =>
+      isNode ? globalThis.process.exit(n) : globalThis.jsoo_exit?.(n),
     argv: () =>
       isNode
         ? globalThis.process.argv.slice(1)
