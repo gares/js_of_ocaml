@@ -681,7 +681,10 @@
     unregister_channel,
     channel_list,
     exit: (n) => isNode && globalThis.process.exit(n),
-    argv: () => (isNode ? globalThis.process.argv.slice(1) : ["a.out"]),
+    argv: () =>
+      isNode
+        ? globalThis.process.argv.slice(1)
+        : (globalThis.jsoo_argv ?? ["a.out"]),
     on_windows: +on_windows,
     on_arm64: +on_arm64,
     getenv,
