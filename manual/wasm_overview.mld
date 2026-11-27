@@ -180,6 +180,9 @@ Files can also be provided at runtime:
   JavaScript, where [content] is a [Uint8Array], or a string with one
   character per byte.
 
+Files queued in [globalThis.jsoo_fs_tmp] (an array of [{name, content}])
+before the runtime is loaded are also added to the pseudo filesystem.
+
 {1 See also}
 
 - {{!page-"build-toplevel"}Toplevel and Dynlink} — Build a toplevel or use dynamic linking
